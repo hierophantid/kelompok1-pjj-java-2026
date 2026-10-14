@@ -1,0 +1,5 @@
+# Salin file ini menjadi db.properties (di folder yang sama), lalu isi sesuai MySQL Anda.
+# db.properties TIDAK ikut di-commit (sudah ada di .gitignore).
+db.url=jdbc:mysql://localhost:3306/dana_desa?serverTimezone=Asia/Jakarta&useSSL=false&allowPublicKeyRetrieval=true
+db.user=isi_user_mysql
+db.password=isi_password_mysql

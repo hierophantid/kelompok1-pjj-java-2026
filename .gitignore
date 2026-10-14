@@ -1,0 +1,21 @@
+# Kredensial asli - JANGAN di-commit
+db.properties
+src/main/resources/db.properties
+
+# Build
+target/
+
+# NetBeans / IDE
+nbproject/private/
+nbactions.xml
+nb-configuration.xml
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Hasil ekspor
+*.csv
