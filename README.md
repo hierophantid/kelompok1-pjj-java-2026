@@ -94,6 +94,3 @@ Supaya riwayat commit mencerminkan kontribusi: setiap anggota bekerja di branch 
 3. Halaman **Penyaluran**: pilih *9901012002 – Sindangjaya*, isi Tahap III senilai `300.000.000`, lalu tunjukkan bahwa ditolak karena melebihi sisa pagu. Kemudian catat `197.100.000` dan lihat berhasil (1,5 menit).
 4. Halaman **Dashboard** lalu **Rekap**: tunjukkan rekap per desa/kabupaten dan total, urutkan kolom %, lalu **Ekspor CSV** dan buka hasilnya di Excel (1 menit).
 5. Jalankan unit test di NetBeans dan tunjukkan semuanya lulus (30 detik).
-
-## Penggunaan AI
-Sesuai ketentuan capstone, cantumkan di laporan alat AI yang dipakai dan untuk bagian apa (contoh: "Claude – membantu menyusun kerangka kode, unit test, dan draf dokumentasi; seluruh kode telah dipelajari dan diuji oleh kelompok").
