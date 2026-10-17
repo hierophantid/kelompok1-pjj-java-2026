@@ -61,16 +61,45 @@ public class PenyaluranService {
     }
 
     public Penyaluran catat(Penyaluran baru) throws AplikasiException {
+        return dalamTransaksi(c -> {
+            Desa desa = kunciDesa(c, baru.getDesaId());
+            List<Penyaluran> riwayat = penyaluranDao.findByDesa(c, desa.getId());
+            validator.periksa(new KonteksPenyaluran(desa, riwayat, baru, LocalDate.now(clock)));
+            penyaluranDao.insert(c, baru);
+            return baru;
+        });
+    }
+
+    /** Hanya tahap terakhir yang boleh dihapus, supaya urutan tahap tetap utuh. */
+    public void hapus(Penyaluran p) throws AplikasiException {
+        dalamTransaksi(c -> {
+            kunciDesa(c, p.getDesaId());
+            Tahap terakhir = penyaluranDao.findByDesa(c, p.getDesaId()).stream()
+                    .map(Penyaluran::getTahap)
+                    .max(Comparator.naturalOrder())
+                    .orElseThrow(() -> new AturanBisnisException("Data penyaluran tidak ditemukan."));
+            if (p.getTahap() != terakhir) {
+                throw new AturanBisnisException("Hanya tahap terakhir (" + terakhir.getLabel()
+                        + ") yang boleh dihapus.");
+            }
+            penyaluranDao.delete(c, p.getId());
+            return null;
+        });
+    }
+
+    private Desa kunciDesa(Connection c, int desaId) throws AplikasiException, SQLException {
+        return desaDao.findByIdForUpdate(c, desaId)
+                .orElseThrow(() -> new AturanBisnisException("Desa tidak ditemukan."));
+    }
+
+    /** Buka koneksi, jalankan aksi, commit; rollback bila gagal. */
+    private <R> R dalamTransaksi(AksiTransaksi<R> aksi) throws AplikasiException {
         try (Connection c = connectionFactory.getConnection()) {
             c.setAutoCommit(false);
             try {
-                Desa desa = desaDao.findByIdForUpdate(c, baru.getDesaId())
-                        .orElseThrow(() -> new AturanBisnisException("Desa tidak ditemukan."));
-                List<Penyaluran> riwayat = penyaluranDao.findByDesa(c, desa.getId());
-                validator.periksa(new KonteksPenyaluran(desa, riwayat, baru, LocalDate.now(clock)));
-                penyaluranDao.insert(c, baru);
+                R hasil = aksi.jalankan(c);
                 c.commit();
-                return baru;
+                return hasil;
             } catch (Exception e) {
                 c.rollback();
                 throw e;
@@ -80,30 +109,8 @@ public class PenyaluranService {
         }
     }
 
-    /** Hanya tahap terakhir yang boleh dihapus, supaya urutan tahap tetap utuh. */
-    public void hapus(Penyaluran p) throws AplikasiException {
-        try (Connection c = connectionFactory.getConnection()) {
-            c.setAutoCommit(false);
-            try {
-                desaDao.findByIdForUpdate(c, p.getDesaId())
-                        .orElseThrow(() -> new AturanBisnisException("Desa tidak ditemukan."));
-                Tahap terakhir = penyaluranDao.findByDesa(c, p.getDesaId()).stream()
-                        .map(Penyaluran::getTahap)
-                        .max(Comparator.naturalOrder())
-                        .orElseThrow(() -> new AturanBisnisException("Data penyaluran tidak ditemukan."));
-                if (p.getTahap() != terakhir) {
-                    throw new AturanBisnisException("Hanya tahap terakhir (" + terakhir.getLabel()
-                            + ") yang boleh dihapus.");
-                }
-                penyaluranDao.delete(c, p.getId());
-                c.commit();
-            } catch (Exception e) {
-                c.rollback();
-                throw e;
-            }
-        } catch (SQLException e) {
-            throw DataAksesException.dari(e);
-        }
+    private interface AksiTransaksi<R> {
+        R jalankan(Connection c) throws AplikasiException, SQLException;
     }
 
     public LocalDate hariIni() {
