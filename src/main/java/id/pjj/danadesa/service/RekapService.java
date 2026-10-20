@@ -17,6 +17,8 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /** Rekap penyaluran per desa, per kabupaten, dan total (Collections + Stream API). */
@@ -48,10 +50,7 @@ public class RekapService {
     public static List<RekapDesa> hitungPerDesa(List<Desa> daftarDesa, List<Penyaluran> semua) {
         // desaId -> (tahap -> jumlah nilai)
         Map<Integer, Map<Tahap, BigDecimal>> nilaiPerDesa = semua.stream()
-                .collect(Collectors.groupingBy(Penyaluran::getDesaId,
-                        Collectors.groupingBy(Penyaluran::getTahap,
-                                () -> new EnumMap<>(Tahap.class),
-                                Collectors.reducing(BigDecimal.ZERO, Penyaluran::getNilai, BigDecimal::add))));
+                .collect(Collectors.groupingBy(Penyaluran::getDesaId, jumlahPerTahap()));
 
         return daftarDesa.stream()
                 .map(d -> new RekapDesa(d, nilaiPerDesa.getOrDefault(d.getId(), Map.of())))
@@ -83,9 +82,14 @@ public class RekapService {
         return semua.stream().collect(Collectors.groupingBy(
                 p -> YearMonth.from(p.getTanggal()),
                 TreeMap::new,
-                Collectors.groupingBy(Penyaluran::getTahap,
-                        () -> new EnumMap<>(Tahap.class),
-                        Collectors.reducing(BigDecimal.ZERO, Penyaluran::getNilai, BigDecimal::add))));
+                jumlahPerTahap()));
+    }
+
+    /** Collector: jumlah nilai penyaluran per tahap (EnumMap: urut tahap). */
+    private static Collector<Penyaluran, ?, Map<Tahap, BigDecimal>> jumlahPerTahap() {
+        return Collectors.groupingBy(Penyaluran::getTahap,
+                () -> new EnumMap<>(Tahap.class),
+                Collectors.reducing(BigDecimal.ZERO, Penyaluran::getNilai, BigDecimal::add));
     }
 
     /** Banyaknya desa per jumlah tahap tersalur: 0 (belum), 1, 2, 3 (selesai). */
@@ -100,7 +104,7 @@ public class RekapService {
     }
 
     private static BigDecimal jumlah(List<? extends RekapItem> data,
-            java.util.function.Function<RekapItem, BigDecimal> ambil) {
+            Function<RekapItem, BigDecimal> ambil) {
         return data.stream().map(ambil).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
